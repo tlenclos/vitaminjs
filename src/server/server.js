@@ -44,4 +44,6 @@ if (module.hot) {
     });
 }
 mountedServer.use(buildConfig.basename, appServer());
-mountedServer.listen(serverConfig.port);
+mountedServer.listen(serverConfig.port, () => {
+    console.log(`Server listening on port ${serverConfig.port}`);
+});

@@ -2,7 +2,7 @@
   "name": "fondation",
   "version": "1.0.0",
   "description": "Mutualized toolchain & foundation for react application",
-  "main": "./src/index.js",
+  "main": "./bin/fondation.es5.js",
   "scripts": {
     "test": "npm run lint",
     "lint": "./node_modules/.bin/eslint ./src"
@@ -56,6 +56,8 @@
     "koa-compose": "^2.4.0",
     "koa-mount": "^1.3.0",
     "koa-static": "^2.0.0",
-    "redux-thunk": "^1.0.3"
+    "progress": "^1.1.8",
+    "redux-thunk": "^1.0.3",
+    "rimraf": "^2.5.2"
   }
 }
