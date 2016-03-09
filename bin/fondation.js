@@ -12,11 +12,18 @@ import buildConfig from '../src/app_descriptor/build';
 import { version } from '../package.json';
 import ProgressPlugin from 'webpack/lib/ProgressPlugin';
 import ProgressBar from 'progress';
+const clean = () => {
+    // TODO : be more smart ? and use promise
+    const noop = () => null;
+    rimraf(path.join(process.cwd(), buildConfig.server.path, buildConfig.server.filename + '*'), noop);
+    rimraf(path.join(process.cwd(), buildConfig.server.path, '*.hot-update.*'), noop);
+    rimraf(path.join(process.cwd(), buildConfig.client.path, buildConfig.client.filename + '*'), noop);
+};
 
-const build = (hot, config) => new Promise((resolve, reject) => {
+const build = ({ hot, watch }, config) => new Promise((resolve, reject) => {
     const dev = process.env.NODE_ENV !== 'production';
     if (hot && !dev) {
-        console.warn('Hot module reload option ignored in production environment');
+        console.warn('Warning: Hot module reload option ignored in production environment. \n(based on your NODE_ENV variable)');
         /* eslint no-param-reassign: 0 */
         hot = false;
     }
@@ -25,9 +32,12 @@ const build = (hot, config) => new Promise((resolve, reject) => {
         'Building app... :percent [:bar]',
         { incomplete: ' ', total: 60, width: 50, clear: true }
     );
-    compiler.apply(new ProgressPlugin((percentage, msg) => bar.update(percentage, { msg })));
     const callback = (err, stats) => {
-        if (err) {
+        if (err || stats.hasErrors()) {
+            console.log(stats.toString({
+                colors: true,
+                errorDetails: true,
+            }));
             return reject(err);
         }
         console.log('Build complete!');
@@ -49,15 +59,32 @@ const build = (hot, config) => new Promise((resolve, reject) => {
         }));
         return resolve();
     };
-    compiler.run(callback);
+    if (watch) {
+        compiler.watch({}, () => null);
+    } else {
+        compiler.apply(new ProgressPlugin((percentage, msg) => bar.update(percentage, { msg })));
+        compiler.run(callback);
+    }
 });
 
-const clean = () => {
-    // TODO : be more smart ? and add promise
-    const noop = () => null;
-    rimraf(path.join(process.cwd(), buildConfig.server.path, buildConfig.server.filename + '*'), noop);
-    rimraf(path.join(process.cwd(), buildConfig.server.path, '*.hot-update.*'), noop);
-    rimraf(path.join(process.cwd(), buildConfig.client.path, buildConfig.client.filename + '*'), noop);
+
+const serve = () => {
+    console.log('Launching server...');
+    const serverFile = path.join(
+        process.cwd(),
+        buildConfig.server.path,
+        buildConfig.server.filename
+    );
+    const serverProcess = spawn('node', [serverFile]);
+    process.on('SIGINT', () => {
+        serverProcess.kill('SIGINT');
+        process.exit(128 + 2);
+    });
+    serverProcess.stdout.on('data', data => console.log(data.toString().trim()));
+    serverProcess.stderr.on('data', data => console.error(data.toString()));
+    serverProcess.on('close', code => {
+        throw new Error(`Server exit with code ${code}`);
+    });
 };
 
 program
@@ -69,7 +96,9 @@ program
     .alias('b')
     .description('Build server and client bundles')
     .option('-h, --hot', 'Activate hot module reload')
-    .action((_, options) => build(options && options.hot, webpackConfig));
+    .action(({ hot }) => {
+        build({ hot }, webpackConfig);
+    });
 
 
 program
@@ -80,27 +109,24 @@ program
 
 
 program
-    .command('serve')
+    .command('start')
     .alias('s')
-    .description('Start application server')
+    .description('Build and start application server')
     .option('-h, --hot', 'Activate hot reload')
-    .action((_, options) => {
-        const hot = options && options.hot;
-        return (hot ?
-            build(hot, webpackConfigServer) :
-            build(hot, webpackConfig)
-        ).then(() => {
-            console.log('Launching server...');
-            const serverFile = path.join(
-                process.cwd(),
-                buildConfig.server.path,
-                buildConfig.server.filename
-            );
-            const serverProcess = spawn(`node ${serverFile}`);
-            serverProcess.stdout.on('data', data => console.log(data.toString()));
-            serverProcess.stderr.on('data', data => console.error(data.toString()));
-            serverProcess.on('exit', code => console.error('process exit with code' + code));
-        });
-    });
+    .action(({ hot }) => (hot ?
+        build({ hot }, webpackConfigServer) :
+        build({ hot }, webpackConfig)
+    ).then(() => {
+        if (hot) {
+            build({ hot, watch: true }, webpackConfigServer);
+        }
+        serve();
+    }));
+
+
+program
+    .command('serve')
+    .description('Start application server')
+    .action(serve);
 
 program.parse(process.argv);

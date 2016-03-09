@@ -2,7 +2,7 @@
 const path = require('path');
 
 export function fondationResolve(...args) {
-    return path.resolve(__dirname, '..', '..', ...args);
+    return path.resolve(process.env.FONDATION_PATH, ...args);
 }
 
 export function appResolve(...args) {

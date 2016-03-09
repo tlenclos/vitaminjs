@@ -22,6 +22,8 @@ function hotReloadServer() {
     server.use(require('webpack-hot-middleware')(compiler, {
         path: hmrPath,
         quiet: true,
+        noInfo: true,
+        reload: true,
     }));
     return server;
 }
