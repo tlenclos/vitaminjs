@@ -57,7 +57,6 @@ export function config(options) {
         },
         cache: options.hot,
         resolve: {
-            alias: moduleMap,
             modules: MODULES_DIRECTORIES,
             extensions: ['.js', '.jsx', '.json', '.css'],
         },

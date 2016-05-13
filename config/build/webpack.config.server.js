@@ -2,7 +2,7 @@ import { config, createBabelLoaderConfig } from './webpack.config.common';
 import { vitaminResolve, appResolve, concat } from '../utils';
 import { BannerPlugin } from 'webpack';
 import mergeWith from 'lodash.mergewith';
-import appConfig from '../index';
+import appConfig, { moduleMap } from '../index';
 import fs from 'fs';
 const safeReaddirSync = (path) => {
     try {
@@ -56,6 +56,10 @@ module.exports = function serverConfig(options) {
 
         module: {
             loaders: [createBabelLoaderConfig('server')],
+        },
+        resolve: {
+            // TODO Resolve module to absolute path
+            alias: { ...appConfig.resolve.server, ...moduleMap }
         },
         plugins: [
             ...(options.dev ? [new BannerPlugin({

@@ -6,6 +6,10 @@ export default {
         basePath: '',
         externalUrl: '',
     },
+    resolve: {
+        client: {},
+        server: {}
+    },
     routes: '__vitamin__/config/utils/emptyArray',
     redux: {
         reducers: '__vitamin__/config/utils/emptyObject',
